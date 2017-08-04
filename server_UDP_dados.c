@@ -15,11 +15,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 //biblioteca de definoções para contar o numero de mensagens recebidas
-#include "contamsg.h"
 
-#define Porta 1666
 
-int main()
+
+int main(int argc, char** argv)
 {
   int server_socket, v6only;
   char buffer[128];
@@ -27,7 +26,10 @@ int main()
 
   struct sockaddr_in6 server_addr, client_addr;
 
-
+  if(argc != 2) {
+    	printf("\n[SERVIDOR] Erro nos argumentos.\n\n");
+    	exit(1);
+ 	}
   server_socket = socket( AF_INET6, SOCK_DGRAM , 0 );
   //AF_INET6 é IPv6 e SOCK_DGRAM cria socket UDP
     if (server_socket == -1)
@@ -47,7 +49,7 @@ int main()
 
  	  server_addr.sin6_family = AF_INET6;           // IPv6
   	server_addr.sin6_addr = in6addr_any;          // Any IP address for the server
-  	server_addr.sin6_port = htons(Porta); // Gets the port number by the first argument
+  	server_addr.sin6_port = htons(atoi(argv[1])); // Gets the port number by the first argument
 
   	/* Bind socket with address struct */
  	if(bind(server_socket, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0)
@@ -57,8 +59,9 @@ int main()
   }
 
   size = sizeof(struct sockaddr_in6);
+  printf("[SERVIDOR] Esperando cliente\n");
 
-
+  int i=1;
   while (1)
   {
     memset(&buffer, 0, sizeof(buffer));
@@ -66,10 +69,12 @@ int main()
 
     if (buffer[0] == 'S')
     {
-      printf("[SERVIDOR] ultimo pacote recebido!");
+      printf("[SERVIDOR] ultimo pacote recebido!\n");
       exit(1);
     }
+    printf("[SERVIDOR] mensagem recebida do cliente!\nReenviando a mensagem %d...\n" , i);
     sendto(server_socket, buffer, 128, 0, (struct sockaddr *) &client_addr, size);
+    i++;
   }
 
 

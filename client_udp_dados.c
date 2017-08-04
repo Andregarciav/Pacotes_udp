@@ -15,8 +15,8 @@ int main(int argc, char** argv) {
 	int client_socket, bytes, rv;
   struct sockaddr_in6;
   char buffer[128];
-  fd_set fds;
-  struct timeval tv;
+	fd_set fds;
+	clock_t inicio, final , startTime , endTime;
 
   	// Esta é a nova estrutura que vamos utilizar!
 	struct addrinfo hints, *list, *item;
@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   	hints.ai_family = AF_UNSPEC;     // aceitar IPv4 ou IPv6
   	hints.ai_socktype = SOCK_DGRAM; // Apenas UDP
 
-  	if((rv = getaddrinfo(argv[1]C, argv[2], &hints, &list)) != 0) { // Chama a função passando os dois argumentos
+  	if((rv = getaddrinfo(argv[1], argv[2], &hints, &list)) != 0) { // Chama a função passando os dois argumentos
     	printf("[CLIENTE] Erro de getaddrinfo: %s\n", gai_strerror(rv));
     	exit(1);
   	}
@@ -57,70 +57,45 @@ int main(int argc, char** argv) {
  // A partir deste ponto, estamos conectados!
  // ------------------------------------------------------------
 
-  int f, h;
-  int identificadorA;
-  char mensagemCliente[200];
+
+ 	char msg[20];
+	char msg2[20];
   printf("[CLIENTE] Conectado!\n");
   	while(1)
 		{
-      retorna: //usado no goto;
-      FD_ZERO(&fds);//Reseta todos os bits
-      FD_SET (client_socket, &fds); //Estabelece o bit que corresponde ao socket clientSocket
+			FD_ZERO(&fds);//Reseta todos os bits
+      FD_SET (client_socket, &fds);
 
-      tv.tv_sec = 10; //Estabelece o valor de time out de 7 segundos
-      tv.tv_usec = 0; //Estabeele o valor de time de 0 milissegundos
-
-      memset(&mensagemCliente, 0, sizeof(mensagemCliente)); //Zera Memoria da variável
-    	memset(&buffer, 0, sizeof(buffer)); //Zera Memoria da variável
-    	printf("[CLIENTE] Digite a mensagem Mensagem: ");
-    	fgets(buffer, 128, stdin); // Lê a mensagem
-
-      identificadorA = gerarNumeroAleatorio(m); //Gera um valor aleatório para a mensagem, a partir de um parâmetro n;
-      m++; // Incrementa o parâmentro;
-
-      bytes = strlen(buffer);
-      buffer[--bytes] = '\0';
-
-      sprintf(mensagemCliente, "%s %d", buffer, identificadorA); //Junta a mensagem com o identificador de mensagem gerado aleatoriamente
-
-    	if(buffer[0] == 'q' && buffer[1] == '\0') break; // Teste pra sair com o "q"
-
-      bytes = strlen(mensagemCliente);
-      mensagemCliente[bytes+1] = '\0';
-
-      write(client_socket, mensagemCliente, bytes); // Manda a mensagem
-
-      printf("\n[CLIENTE] Mensagem %d Enviada!\n", identificadorA);
-
-    	f = recv(client_socket, buffer, sizeof(buffer), 0);  // Esperando por uma resposta do servidor
-
-      //--------------------------------------------------------------------------------------------------
-      // Parte do codigo trata do problema da retransmissao de mensagens
-      if(f<0){ //Caso não receba uma resposta
-        printf("[CLIENTE] Erro! A mensagem %d sera retransmitida em 7 segundos!\n", identificadorA);
-
-        n = select (client_socket, &fds, NULL, NULL, &tv ); //Inicia temporizador
-        if(n==0){ //Caso tenha atingido tempo necessário
-          printf("[CLIENTE] Timeout da Mensagem %d. Retransmitindo!\n", identificadorA);
-          write(client_socket, mensagemCliente, bytes);
-          h = recv(client_socket, buffer, sizeof(buffer), 0);
-          if(h<0){ // COnfere se a retransmissao deu ruim
-            printf("[CLIENTE] Falha na Retransmissao da mensagem %d! Digite a mensagem novamente!\n", identificadorA);
-          }
-          else{ // Caso a retransmissao de certo
-            goto mensagemRecebida;
-          }
-        }
-        else{
-          goto retorna;
-        }
-      }
-      //----------------------------------------------------------------------------------------------------
-      else{ // Caso o programa receba a mensagem
-        mensagemRecebida:
-        printf("\n[CLIENTE] %s\n\n", buffer);
-      }
-  	}
+			memset(&msg, 0, sizeof(msg)); //Zera Memoria da variável
+			memset(&buffer, 0, sizeof(buffer));
+			int i, aux;
+			inicio = clock();
+			FILE *arq_send = fopen("envio.txt", "w");
+			FILE *arq_receive = fopen("recebido.txt", "w");
+			for (i=0; i < 10000; i++)
+			{
+				final = clock();
+				aux = (final - inicio)/1000;
+				sprintf(msg, "%d %d\n", i , aux );
+				fprintf(arq_send, "%s", msg);
+				bytes = strlen(msg);
+				write(client_socket, msg , bytes);
+				startTime = clock();
+				endTime = clock();
+				recv(client_socket, msg2, sizeof(msg2), 0);
+				printf("[CLIENTE] mensagem %d enviada\n", i);
+				while ((endTime - startTime )/1000 < 5) {
+					endTime = clock();
+				}
+				fprintf(arq_receive, "%s" , msg2 );
+  		}
+			fclose(arq_send);
+			fclose(arq_receive);
+			*msg = 'S';
+			bytes = strlen(msg);
+			write(client_socket, msg , bytes);
+			break;
+		}
   	close(client_socket); // Releasing the socket.
   	freeaddrinfo(list); // liberando a memória!!
 	return 0;
